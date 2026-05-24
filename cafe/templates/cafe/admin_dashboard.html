@@ -1,0 +1,298 @@
+{% extends 'cafe/base.html' %}
+
+{% block title %}Dashboard - Cafe Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        border-radius: 15px;
+        color: white;
+        padding: 25px;
+        position: relative;
+        overflow: hidden;
+        border: none;
+    }
+    .stat-card::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%);
+        transform: rotate(45deg);
+        border-radius: 50%;
+    }
+    .stat-icon {
+        font-size: 3rem;
+        opacity: 0.3;
+        position: absolute;
+        bottom: 10px;
+        right: 20px;
+    }
+    .bg-gradient-primary { background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%); }
+    .bg-gradient-success { background: linear-gradient(135deg, #4cc9f0 0%, #4895ef 100%); }
+    .bg-gradient-warning { background: linear-gradient(135deg, #f8961e 0%, #f3722c 100%); }
+    .bg-gradient-danger { background: linear-gradient(135deg, #f72585 0%, #b5179e 100%); }
+    .bg-gradient-info { background: linear-gradient(135deg, #7209b7 0%, #560bad 100%); }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4">
+    <div class="col">
+        <h2 class="fw-bold mb-0">Overview</h2>
+        <p class="text-muted mb-0">Welcome back! Here is what's happening at your cafe.</p>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-4 mb-5">
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card bg-gradient-primary glass-card h-100">
+            <h6 class="text-uppercase text-white-50 fw-bold letter-spacing-1">Total Orders</h6>
+            <h2 class="display-5 fw-bold mb-0">{{ total_orders }}</h2>
+            <i class="fas fa-shopping-bag stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card bg-gradient-success glass-card h-100">
+            <h6 class="text-uppercase text-white-50 fw-bold letter-spacing-1">Revenue</h6>
+            <h2 class="display-5 fw-bold mb-0">${{ weekly_revenue|floatformat:2 }}</h2>
+            <i class="fas fa-dollar-sign stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card bg-gradient-warning glass-card h-100">
+            <h6 class="text-uppercase text-white-50 fw-bold letter-spacing-1">Pending Orders</h6>
+            <h2 class="display-5 fw-bold mb-0">{{ pending_orders_count }}</h2>
+            <i class="fas fa-clock stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card bg-gradient-info glass-card h-100">
+            <h6 class="text-uppercase text-white-50 fw-bold letter-spacing-1">Best-Selling</h6>
+            <h3 class="fw-bold mt-2 mb-0 text-truncate">{{ most_ordered_item }}</h3>
+            <i class="fas fa-star stat-icon"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Area -->
+<div class="row g-4 mb-5">
+    <div class="col-lg-8">
+        <div class="glass-card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0 text-dark">Revenue Overview</h5>
+            </div>
+            <div class="chart-container">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="glass-card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0 text-dark">Top Items</h5>
+            </div>
+            <div class="chart-container">
+                <canvas id="bestSellingChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Low Stock -->
+    <div class="col-lg-4">
+        <div class="glass-card p-0 h-100 overflow-hidden">
+            <div class="p-4 bg-gradient-danger text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0">Attention Required</h5>
+                    <i class="fas fa-exclamation-triangle fs-3 opacity-50"></i>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="d-flex justify-content-between mb-4">
+                    <div>
+                        <p class="text-muted mb-1 text-uppercase text-xs fw-bold">Low Stock</p>
+                        <h3 class="fw-bold text-dark mb-0">{{ total_low_stock }}</h3>
+                    </div>
+                    <div class="text-end">
+                        <p class="text-muted mb-1 text-uppercase text-xs fw-bold">Out of Stock</p>
+                        <h3 class="fw-bold text-danger mb-0">{{ total_out_of_stock }}</h3>
+                    </div>
+                </div>
+                
+                <h6 class="fw-bold text-muted mb-3">Critical Items</h6>
+                <div class="list-group list-group-flush">
+                    {% for item in low_stock_items %}
+                    <div class="list-group-item px-0 border-0 d-flex justify-content-between align-items-center bg-transparent">
+                        <span class="text-dark fw-medium">{{ item.name }}</span>
+                        {% if item.stock_quantity == 0 %}
+                            <span class="badge bg-danger rounded-pill">Out</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark rounded-pill">{{ item.stock_quantity }} Left</span>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <p class="text-muted small">Inventory is perfectly stocked.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="col-lg-8">
+        <div class="glass-card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0 text-dark">Recent Activity</h5>
+                <a href="{% url 'cafe:order_list' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-borderless align-middle">
+                    <tbody>
+                        {% for activity in recent_activities %}
+                        <tr class="border-bottom border-light">
+                            <td style="width: 50px;">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center bg-light text-primary" style="width: 40px; height: 40px;">
+                                    {% if activity.activity_type == 'order_created' %}
+                                        <i class="fas fa-shopping-cart"></i>
+                                    {% elif activity.activity_type == 'order_status' %}
+                                        <i class="fas fa-truck"></i>
+                                    {% elif 'menu' in activity.activity_type %}
+                                        <i class="fas fa-utensils"></i>
+                                    {% elif activity.activity_type == 'inventory_updated' %}
+                                        <i class="fas fa-box"></i>
+                                    {% else %}
+                                        <i class="fas fa-info"></i>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <p class="mb-0 fw-medium text-dark">{{ activity.message }}</p>
+                            </td>
+                            <td class="text-end text-muted small">
+                                <i class="far fa-clock me-1"></i>{{ activity.created_at|timesince }} ago
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">No activity found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Shared Chart Configuration
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#6c757d';
+
+        // 1. Revenue Chart (Line)
+        const dateLabels = JSON.parse('{{ date_labels|safe }}');
+        const revenueData = JSON.parse('{{ revenue_data|safe }}');
+        
+        const revCtx = document.getElementById('revenueChart').getContext('2d');
+        
+        // Gradient for line chart
+        let revGradient = revCtx.createLinearGradient(0, 0, 0, 400);
+        revGradient.addColorStop(0, 'rgba(67, 97, 238, 0.5)');
+        revGradient.addColorStop(1, 'rgba(67, 97, 238, 0.0)');
+
+        new Chart(revCtx, {
+            type: 'line',
+            data: {
+                labels: dateLabels,
+                datasets: [{
+                    label: 'Revenue ($)',
+                    data: revenueData,
+                    borderColor: '#4361ee',
+                    backgroundColor: revGradient,
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#4361ee',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1a1a2e',
+                        titleFont: { size: 13 },
+                        bodyFont: { size: 14, weight: 'bold' },
+                        padding: 10,
+                        cornerRadius: 8,
+                        displayColors: false
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { 
+                        beginAtZero: true, 
+                        border: { display: false },
+                        grid: { color: 'rgba(0,0,0,0.05)' }
+                    }
+                }
+            }
+        });
+
+        // 2. Best Selling Chart (Doughnut)
+        const bsLabels = JSON.parse('{{ best_selling_labels|safe }}');
+        const bsData = JSON.parse('{{ best_selling_data|safe }}');
+        
+        const bsCtx = document.getElementById('bestSellingChart').getContext('2d');
+        new Chart(bsCtx, {
+            type: 'doughnut',
+            data: {
+                labels: bsLabels,
+                datasets: [{
+                    data: bsData,
+                    backgroundColor: [
+                        '#4361ee', '#f72585', '#4cc9f0', '#f8961e', '#7209b7'
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '75%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

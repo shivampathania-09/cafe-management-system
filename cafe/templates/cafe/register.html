@@ -1,0 +1,52 @@
+{% extends 'cafe/base.html' %}
+
+{% block title %}Register - Cafe Management System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card glass-card border-0 p-4">
+            <div class="card-header bg-transparent border-0 text-center mb-4">
+                <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 60px; height: 60px;">
+                    <i class="fas fa-user-plus fs-3"></i>
+                </div>
+                <h4 class="fw-bold text-dark mb-0">Create an Account</h4>
+                <p class="text-muted small">Join our system as a new Staff member</p>
+            </div>
+            <div class="card-body p-0">
+                <form method="post" action="{% url 'cafe:register' %}">
+                    {% csrf_token %}
+                    
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label text-muted fw-bold small text-uppercase">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="text-danger mt-1 small">
+                                {% for error in field.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <button type="submit" class="btn btn-success btn-lg w-100 rounded-pill shadow-sm fw-bold mt-2">Register</button>
+                    
+                    <div class="mt-3 text-center">
+                        <p>Already have an account? <a href="{% url 'cafe:login' %}">Login</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

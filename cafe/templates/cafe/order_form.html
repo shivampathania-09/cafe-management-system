@@ -1,0 +1,145 @@
+{% extends 'cafe/base.html' %}
+
+{% block title %}Create Order - Cafe Management System{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4">
+    <div class="col">
+        <h2 class="fw-bold mb-0 text-dark">Create New Order</h2>
+        <p class="text-muted mb-0">Select items and assign a table to place an order.</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <form method="post" id="order-form">
+            {% csrf_token %}
+            
+            <div class="card glass-card border-0 mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                    <h5 class="fw-bold mb-0 text-dark">Order Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="table_number" class="form-label">Table Number (Optional)</label>
+                        <input type="text" name="table_number" class="form-control" id="table_number" placeholder="e.g. Table 5">
+                    </div>
+                </div>
+            </div>
+
+            </div>
+
+            <div class="card glass-card border-0 mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                    <h5 class="fw-bold mb-0 text-dark">Select Items</h5>
+                </div>
+                <div class="card-body p-0 mt-3">
+                    <table class="table table-hover align-middle mb-0" id="items-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-muted text-uppercase text-xs fw-bold border-0 ps-4">Item</th>
+                                <th class="text-muted text-uppercase text-xs fw-bold border-0">Price</th>
+                                <th class="text-muted text-uppercase text-xs fw-bold border-0" style="width: 150px;">Quantity</th>
+                                <th class="text-muted text-uppercase text-xs fw-bold border-0 text-end pe-4">Item Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        {% if item.image %}
+                                            <img src="{{ item.image.url }}" alt="{{ item.name }}" class="rounded me-3 shadow-sm" style="width: 50px; height: 50px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="bg-light rounded me-3 shadow-sm d-flex align-items-center justify-content-center text-muted" style="width: 50px; height: 50px;">
+                                                <i class="fas fa-utensils"></i>
+                                            </div>
+                                        {% endif %}
+                                        <div>
+                                            <h6 class="fw-bold text-dark mb-0">{{ item.name }}</h6>
+                                            {% if item.stock_quantity <= item.low_stock_threshold and item.stock_quantity > 0 %}
+                                                <span class="badge bg-warning text-dark rounded-pill px-2">Only {{ item.stock_quantity }} left</span>
+                                            {% elif item.stock_quantity == 0 %}
+                                                <span class="badge bg-danger rounded-pill px-2">Out of stock</span>
+                                            {% else %}
+                                                <span class="badge bg-success rounded-pill px-2">{{ item.stock_quantity }} in stock</span>
+                                            {% endif %}
+                                            <br><small class="text-muted">{{ item.description|truncatewords:5 }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="fw-bold text-primary">$<span class="item-price">{{ item.price }}</span></td>
+                                <td>
+                                    {% if item.stock_quantity == 0 %}
+                                        <input type="number" class="form-control bg-light" value="0" disabled>
+                                    {% else %}
+                                        <input type="number" name="quantity_{{ item.id }}" class="form-control item-quantity" value="0" min="0" max="{{ item.stock_quantity }}" data-price="{{ item.price }}">
+                                    {% endif %}
+                                </td>
+                                <td class="text-end fw-bold pe-4">$<span class="item-total">0.00</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-5 text-muted">No items available to order.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card glass-card border-0 mb-4 bg-gradient" style="background: linear-gradient(135deg, #f8f9fc 0%, #ffffff 100%);">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between mb-3">
+                        <h6 class="text-muted text-uppercase fw-bold mb-0">Subtotal:</h6>
+                        <h6 class="fw-bold mb-0">$<span id="subtotal">0.00</span></h6>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 text-danger">
+                        <h6 class="text-uppercase fw-bold mb-0">GST (18%):</h6>
+                        <h6 class="fw-bold mb-0">$<span id="gst">0.00</span></h6>
+                    </div>
+                    <hr class="my-4 text-muted">
+                    <div class="d-flex justify-content-between text-success align-items-center">
+                        <h4 class="fw-bold mb-0">Total Price:</h4>
+                        <h3 class="fw-bold mb-0">$<span id="total">0.00</span></h3>
+                    </div>
+                    <div class="mt-4 text-end">
+                        <button type="submit" class="btn btn-success btn-lg rounded-pill px-5 fw-bold shadow-sm"><i class="fas fa-check-circle me-2"></i>Place Order</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const quantities = document.querySelectorAll('.item-quantity');
+        
+        quantities.forEach(input => {
+            input.addEventListener('input', calculateTotal);
+        });
+        
+        function calculateTotal() {
+            let subtotal = 0;
+            quantities.forEach(input => {
+                const quantity = parseInt(input.value) || 0;
+                const price = parseFloat(input.dataset.price);
+                const itemTotal = quantity * price;
+                
+                // Update row total
+                input.closest('tr').querySelector('.item-total').textContent = itemTotal.toFixed(2);
+                
+                subtotal += itemTotal;
+            });
+            
+            const gst = subtotal * 0.18;
+            const total = subtotal + gst;
+            
+            document.getElementById('subtotal').textContent = subtotal.toFixed(2);
+            document.getElementById('gst').textContent = gst.toFixed(2);
+            document.getElementById('total').textContent = total.toFixed(2);
+        }
+    });
+</script>
+{% endblock %}

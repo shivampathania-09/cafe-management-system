@@ -1,0 +1,27 @@
+{% extends 'cafe/base.html' %}
+
+{% block title %}
+    {% if object %}Edit Menu Item{% else %}Add Menu Item{% endif %} - Cafe Management System
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card glass-card border-0">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                <h4 class="mb-0 fw-bold text-dark">{% if object %}Edit Menu Item{% else %}Add Menu Item{% endif %}</h4>
+            </div>
+            <div class="card-body mt-3">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <div class="mt-4 pt-3 border-top">
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 me-2 shadow-sm">Save Item</button>
+                        <a href="{% url 'cafe:menu_list' %}" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

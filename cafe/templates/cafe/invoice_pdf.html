@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Invoice #{{ order.id }}</title>
+    <style>
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 12px; color: #333; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { margin: 0; color: #444; }
+        .invoice-details { margin-bottom: 20px; }
+        .invoice-details td { padding: 5px; }
+        .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .table th, .table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .table th { background-color: #f2f2f2; font-weight: bold; }
+        .text-right { text-align: right; }
+        .totals { width: 40%; margin-left: 60%; border-collapse: collapse; }
+        .totals td { padding: 5px; border-bottom: 1px solid #ddd; }
+        .totals .bold { font-weight: bold; }
+        .footer { text-align: center; margin-top: 50px; font-size: 10px; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>CAFE MANAGEMENT SYSTEM</h1>
+        <p>123 Coffee Street, Bean City</p>
+    </div>
+
+    <table class="invoice-details" width="100%">
+        <tr>
+            <td><strong>Invoice Number:</strong> #{{ order.id }}</td>
+            <td class="text-right"><strong>Date:</strong> {{ order.created_at|date:"M d, Y h:i A" }}</td>
+        </tr>
+        <tr>
+            <td><strong>Served By:</strong> {{ order.user.username }}</td>
+            <td class="text-right"><strong>Table Number:</strong> {{ order.table_number|default:"Walk-in" }}</td>
+        </tr>
+    </table>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Item Description</th>
+                <th class="text-right">Qty</th>
+                <th class="text-right">Unit Price</th>
+                <th class="text-right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order_item in order.items.all %}
+            <tr>
+                <td>{{ order_item.menu_item.name }}</td>
+                <td class="text-right">{{ order_item.quantity }}</td>
+                <td class="text-right">${{ order_item.menu_item.price }}</td>
+                <td class="text-right">${% widthratio order_item.menu_item.price 1 order_item.quantity %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table class="totals">
+        <tr>
+            <td>Subtotal:</td>
+            <td class="text-right">${{ order.subtotal }}</td>
+        </tr>
+        <tr>
+            <td>GST (18%):</td>
+            <td class="text-right">${{ order.gst_amount }}</td>
+        </tr>
+        <tr>
+            <td class="bold">Grand Total:</td>
+            <td class="bold text-right">${{ order.total_price }}</td>
+        </tr>
+    </table>
+
+    <div class="footer">
+        <p>Thank you for your business!</p>
+        <p>This is a computer generated invoice.</p>
+    </div>
+</body>
+</html>
