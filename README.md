@@ -117,3 +117,5 @@ The database architecture revolves around five core models:
 
 ### Conclusion
 This Cafe Management System serves as a robust foundation for modernizing restaurant workflows. By prioritizing a clean user interface alongside critical business logic like inventory tracking and billing automation, it significantly reduces operational overhead.
+
+> *A Django-based Cafe Management System project developed for my internship purpose.*
